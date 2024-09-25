@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "representation-learning"
+version = "1.0.0"
+description = "Representation Learning"
+authors = ["Milan Pavlovic - UNS PMF"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.11"
+poethepoet = "^0.28.0"
+gensim = "^4.3.3"
+scikit-learn = "^1.5.2"
+pandas = "^2.2.3"
+seaborn = "^0.13.2"
+wordcloud = "^1.9.3"
+spacy = "^3.7.6"
+transformers = "^4.44.2"
+loguru = "^0.7.2"
+tqdm = "^4.66.5"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[tool.poe.tasks]
+torch-gpu = "pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
