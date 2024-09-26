@@ -66,7 +66,7 @@ class DataManager:
         STATE_SEED = 21
         BATCH_SIZE = 128
 
-        TRAIN_PORTION = 0.6
+        TRAIN_PORTION = 0.5
         TEST_VALID_SPLIT = 0.5
 
         FEATURE_TEXT = 'review'

@@ -309,7 +309,7 @@ class ModelManager:
         with torch.no_grad():
             for inputs, labels in tqdm(self.dataset.dataloader_test, desc='Testing model'):
                 # Vectorization
-                inputs = self.model.vectorization(inputs)
+                inputs = the_model.vectorization(inputs)
 
                 # Move to GPU
                 inputs = inputs.float().to(self.device)
@@ -451,7 +451,7 @@ class ModelOptimizer:
         model_manager.test(best_model) 
         
         # Saving
-        ModelManager.save(best_model, suffix=f'trial{best_trial}_best')
+        ModelManager.save(best_model, suffix=f'trial_{best_trial}_best')
 
         logger.info(f'\nBest F1 Score: {best_f1_score:.4f}\nBest Parameters: {best_params}')
         return
