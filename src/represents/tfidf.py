@@ -18,7 +18,7 @@ from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, Text
 class TfidfDataset(DataManager):
     """Tfidf dataset manager"""
 
-    def __init__(self, sample_size: float = None):
+    def __init__(self, sample_size: float = None) -> None:
         """Initializes dataset with texts and labels.
 
         Args:

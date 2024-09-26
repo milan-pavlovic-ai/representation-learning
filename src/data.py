@@ -172,6 +172,19 @@ class DataManager:
         self.__init_loaders()
         return
 
+    def into_tokens_lists(self) -> None:
+        """Transform everything into tokens list"""
+        self.X_train = self.X_train.apply(lambda x: x.split())
+        self.X_valid = self.X_valid.apply(lambda x: x.split())
+        self.X_test = self.X_test.apply(lambda x: x.split())
+
+        self.train_data[DataManager.Config.FEATURE_TEXT] = self.train_data[DataManager.Config.FEATURE_TEXT].apply(lambda x: x.split())
+        self.valid_data[DataManager.Config.FEATURE_TEXT] = self.valid_data[DataManager.Config.FEATURE_TEXT].apply(lambda x: x.split())
+        self.test_data[DataManager.Config.FEATURE_TEXT] = self.test_data[DataManager.Config.FEATURE_TEXT].apply(lambda x: x.split())
+
+        # Re-initialized data
+        self.__init_loaders()
+        return
 
 class TextPreprocessor:
     """Text preprocessor"""
