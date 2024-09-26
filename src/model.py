@@ -25,6 +25,7 @@ class TextRepresentation(nn.Module):
     def __init__(self) -> None:
         """Initializes the TextRepresentation module"""
         super(TextRepresentation, self).__init__()
+        return
 
     def forward(self, inputs: Any) -> torch.Tensor:
         """Transforms the input data into a tensor representation.
@@ -52,6 +53,56 @@ class TextRepresentation(nn.Module):
 
         Returns:
             None
+        """
+        raise NotImplementedError("Subclasses should implement this!")
+
+
+class TextClassifier(nn.Module):
+    """Text classifier that combines a text representation with a linear classifier for binary sentiment classification."""
+    
+    def __init__(self, hparams: Dict[str, Any]) -> None:
+        """Initalize complete classifier
+    
+        Args:
+            hparams (Any): Hyper-paramters for initialization
+
+        Returns:
+            None
+        """
+        super(TextClassifier, self).__init__()
+        return
+
+    def pretrain_representation(self, dataset: Any, hparams) -> None:
+        """Pretraining of representation with hyperparameters passed as keyword arguments.
+        
+        Args:
+            dataset: Dataset manager.
+            hparams (dict): Hyper-parameters representation model
+
+        Returns:
+            None
+        """
+        raise NotImplementedError("Subclasses should implement this!")
+
+    def vectorization(self, inputs: Any) -> torch.Tensor:
+        """Forward pass through the text representation.
+        
+        Args:
+            inputs (Any): Input text data, usually a list of strings or tokenized data.
+            
+        Returns:
+            torch.Tensor: Vectorized inputs.
+        """
+        raise NotImplementedError("Subclasses should implement this!")
+
+    def forward(self, inputs: Any) -> torch.Tensor:
+        """Forward pass through the main classifier.
+        
+        Args:
+            inputs (Any): Input vectorized data. This is important because of the GPU usage.
+            
+        Returns:
+            torch.Tensor: The sigmoid-activated logits representing the class probabilities.
         """
         raise NotImplementedError("Subclasses should implement this!")
 
@@ -114,7 +165,7 @@ class ModelManager:
 
         # Set device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        # self.model.to(self.device)
+        self.model.to(self.device)
         return
 
     def train(self, trial_id: int, total_trials: int, num_epochs: int, patience: int) -> None:
@@ -144,8 +195,13 @@ class ModelManager:
             total_preds: int = 0
 
             for inputs, labels in tqdm(self.dataset.dataloader_train, desc=f'\nTraining epoch {epoch}/{num_epochs}'):
-                # inputs = inputs.to(self.device)   # TODO it should be numeric at this stage
-                labels = labels.float().view(-1, 1) # TODO it should be the same device  .to(self.device)
+
+                # vectorization
+                inputs = self.model.vectorization(inputs)
+
+                # Move to GPU
+                inputs = inputs.to(self.device)
+                labels = labels.float().view(-1, 1).to(self.device)
 
                 # Forward pass
                 self.optimizer.zero_grad()
@@ -204,11 +260,19 @@ class ModelManager:
 
         with torch.no_grad():
             for inputs, labels in tqdm(self.dataset.dataloader_valid, desc='Validating model'):
-                # inputs = inputs.float().to(self.device)
-                labels = labels.float().view(-1, 1) 
+                
+                # vectorization
+                inputs = self.model.vectorization(inputs)
+
+                # Move to GPU
+                inputs = inputs.float().to(self.device)
+                labels = labels.float().view(-1, 1).to(self.device)
+                
+                # Predictions
                 outputs = self.model(inputs)
                 predicted = (outputs > ModelManager.Config.THRESHOLD).float()
                 
+                # Metrics
                 loss = self.criterion(outputs, labels)
                 total_loss += loss.item()
 
@@ -227,11 +291,12 @@ class ModelManager:
 
         return f1_result
 
-    def test(self, the_model: Any) -> None:
+    def test(self, the_model: Any, decimals: int = 4) -> None:
         """Evaluates the model using the test set.
 
         Args:
             the_model: Model to test.
+            decimals (int): Number of decimal places for metric values. Defaults to 4.
 
         Returns:
             None
@@ -243,15 +308,22 @@ class ModelManager:
         # Calculate predictions
         with torch.no_grad():
             for inputs, labels in tqdm(self.dataset.dataloader_test, desc='Testing model'):
-                # inputs = inputs.float().to(self.device)
+                # Vectorization
+                inputs = self.model.vectorization(inputs)
+
+                # Move to GPU
+                inputs = inputs.float().to(self.device)
                 labels = labels.float().view(-1, 1) 
+                
+                # Predictions
                 outputs = the_model(inputs)
                 predictions = (outputs > ModelManager.Config.THRESHOLD).float()
+                
+                # Metrics
                 all_preds.extend(predictions.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
 
         # Calculate metrics
-        decimals = 4
         f1_result = round(f1_score(all_labels, all_preds), decimals)
         accuracy = round(accuracy_score(all_labels, all_preds), decimals)
         precision = round(precision_score(all_labels, all_preds), decimals)
@@ -329,6 +401,8 @@ class ModelOptimizer:
         """
         best_f1_score: float = 0.0
         best_params: Dict[str, Any] = {}
+        best_trial = -1
+        best_model = None
         
         for trial_id in range(self.n_trials):
             # Sample hyperparameters
@@ -336,7 +410,7 @@ class ModelOptimizer:
             
             # Create model
             model = self.model_class(hparams)
-            model.pretrain(self.dataset, hparams)
+            model.pretrain_representation(self.dataset, hparams)
 
             # Train the model
             criterion = nn.BCELoss(reduction='mean')
@@ -371,12 +445,13 @@ class ModelOptimizer:
                 best_f1_score = f1_result
                 best_params = hparams
                 best_model = copy.deepcopy(model)
+                best_trial = trial_id
 
         # Testing
         model_manager.test(best_model) 
         
         # Saving
-        ModelManager.save(best_model, suffix='best')
+        ModelManager.save(best_model, suffix=f'trial{best_trial}_best')
 
         logger.info(f'\nBest F1 Score: {best_f1_score:.4f}\nBest Parameters: {best_params}')
         return

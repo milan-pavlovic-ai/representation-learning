@@ -64,7 +64,7 @@ class DataManager:
     class Config:
         """Data configuration"""
         STATE_SEED = 21
-        BATCH_SIZE = 64
+        BATCH_SIZE = 128
 
         TRAIN_PORTION = 0.6
         TEST_VALID_SPLIT = 0.5
