@@ -5,81 +5,18 @@ import sys
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..'))
 
 import torch
-import spacy
 import numpy as np
-import pandas as pd
 
-from tqdm import tqdm
 from loguru import logger
 from typing import Dict, Any
-from spacy.cli import download
 from sklearn.feature_extraction.text import TfidfVectorizer
-from gensim.parsing.preprocessing import preprocess_string, remove_stopwords, strip_punctuation, stem_text
 
-from src.data import DataManager
+from src.data import DataManager, TextPreprocessor
 from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, TextClassifier
 
 
-class TextPreprocessor:
-    """Text preprocessor"""
-
-    class Config:
-        """Preprocessor Configuration"""
-        ENGLISH_CORPUS = 'en_core_web_sm'
-        CACHED_PROCESSED_DATA_PATH = 'data/processed/IMDB-Dataset-processed-tfidf.csv'
-        MIN_SIZE_TOKEN = 2
-
-    def __init__(self) -> None:
-        """Initialize the text preprocessor"""
-        try:
-            self.nlp = spacy.load(TextPreprocessor.Config.ENGLISH_CORPUS)
-        except OSError:
-            logger.info(f"Downloading {TextPreprocessor.Config.ENGLISH_CORPUS} model...")
-            download(TextPreprocessor.Config.ENGLISH_CORPUS)
-            self.nlp = spacy.load(TextPreprocessor.Config.ENGLISH_CORPUS)
-
-        self.default_filters = [
-            lambda doc: doc.lower(),    # Lowercase
-            strip_punctuation,          # Remove puncts
-            remove_stopwords,           # Remove stop words
-            lambda doc: ' '.join([
-                token for token in doc.split() 
-                if (len(token) >= TextPreprocessor.Config.MIN_SIZE_TOKEN or token.isdigit())  # Keep tokens with len >= 2 or digits
-            ]),
-            lambda doc: ' '.join([token.lemma_ for token in self.nlp(doc)]),    # Lemmatization
-            # stem_text                   # Stemming
-        ]
-        return
-    
-    def execute(self, corpus: pd.Series) -> pd.Series:
-        """Preprocess corpus
-
-        Args:
-            corpus (pd.Series): List of documents.
-
-        Returns:
-            pd.Series: Preprocessed List of documents.
-        """
-        if os.path.exists(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH):
-            processed_corpus = pd.read_csv(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH, header=0)
-            processed_corpus = pd.Series(processed_corpus.iloc[:, 0]) 
-            logger.info('Load pre-processed corpus')
-            return processed_corpus
-        
-        processed_docs = []
-        for doc in tqdm(corpus, desc='Preprocessing data'):
-            tokens = preprocess_string(doc, filters=self.default_filters)
-            processed_docs.append(' '.join(tokens))
-
-        processed_corpus = pd.Series(processed_docs)
-        processed_corpus.to_csv(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH, index=False)
-        logger.info(f'Corpus has been pre-processed and saved at {TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH}')
-        
-        return processed_corpus
-
-
-class ReviewDataset(DataManager):
-    """Review dataset manager"""
+class TfidfDataset(DataManager):
+    """Tfidf dataset manager"""
 
     def __init__(self, sample_size: float = None):
         """Initializes dataset with texts and labels.
@@ -90,7 +27,7 @@ class ReviewDataset(DataManager):
         Returns:
             None
         """
-        super(ReviewDataset, self).__init__(sample_size=sample_size, processor=TextPreprocessor())
+        super(TfidfDataset, self).__init__(sample_size=sample_size, processor=TextPreprocessor())
         return
 
 
@@ -106,6 +43,7 @@ class TfidfRepresentation(TextRepresentation):
         super(TfidfRepresentation, self).__init__()
         
         self.model = None
+        self.prefix = 'tfidf__'
 
         logger.info('Initialized TF-IDF representation')
         return
@@ -121,8 +59,7 @@ class TfidfRepresentation(TextRepresentation):
             None
         """
         # Initialize
-        prefix = 'tfidf__'
-        tfidf_hparams = {key.replace(prefix, ''): value for key, value in hparams.items() if key.startswith(prefix)}
+        tfidf_hparams = {key.replace(self.prefix, ''): value for key, value in hparams.items() if key.startswith(self.prefix)}
         self.model = TfidfVectorizer(**tfidf_hparams)
 
         # Train representation on the entire corpus (no batch processing here)
@@ -210,7 +147,7 @@ class TfidfClassifier(TextClassifier):
 if __name__ == "__main__":
    
     # Prepare dataset
-    dataset = ReviewDataset(sample_size=None)
+    dataset = TfidfDataset(sample_size=None)
     dataset.prepare()
     
     # Define hyperparameter space

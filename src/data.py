@@ -5,14 +5,18 @@ import sys
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'))
 
 import random
+import spacy
 import torch
 import numpy as np
 import pandas as pd
 
+from tqdm import tqdm
 from loguru import logger
 from typing import Any, Tuple
+from spacy.cli import download
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
+from gensim.parsing.preprocessing import preprocess_string, remove_stopwords, strip_punctuation
 
 
 class PandasDataset(Dataset):
@@ -167,3 +171,61 @@ class DataManager:
         self.__split()
         self.__init_loaders()
         return
+
+
+class TextPreprocessor:
+    """Text preprocessor"""
+
+    class Config:
+        """Preprocessor Configuration"""
+        ENGLISH_CORPUS = 'en_core_web_sm'
+        CACHED_PROCESSED_DATA_PATH = 'data/processed/IMDB-Dataset-processed-in-details.csv'
+        MIN_SIZE_TOKEN = 2
+
+    def __init__(self) -> None:
+        """Initialize the text preprocessor"""
+        try:
+            self.nlp = spacy.load(TextPreprocessor.Config.ENGLISH_CORPUS)
+        except OSError:
+            logger.info(f"Downloading {TextPreprocessor.Config.ENGLISH_CORPUS} model...")
+            download(TextPreprocessor.Config.ENGLISH_CORPUS)
+            self.nlp = spacy.load(TextPreprocessor.Config.ENGLISH_CORPUS)
+
+        self.default_filters = [
+            lambda doc: doc.lower(),    # Lowercase
+            strip_punctuation,          # Remove puncts
+            remove_stopwords,           # Remove stop words
+            lambda doc: ' '.join([
+                token for token in doc.split() 
+                if (len(token) >= TextPreprocessor.Config.MIN_SIZE_TOKEN or token.isdigit())  # Keep tokens with len >= 2 or digits
+            ]),
+            lambda doc: ' '.join([token.lemma_ for token in self.nlp(doc)]),    # Lemmatization
+            # stem_text                   # Stemming
+        ]
+        return
+    
+    def execute(self, corpus: pd.Series) -> pd.Series:
+        """Preprocess corpus
+
+        Args:
+            corpus (pd.Series): List of documents.
+
+        Returns:
+            pd.Series: Preprocessed List of documents.
+        """
+        if os.path.exists(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH):
+            processed_corpus = pd.read_csv(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH, header=0)
+            processed_corpus = pd.Series(processed_corpus.iloc[:, 0]) 
+            logger.info('Load pre-processed corpus')
+            return processed_corpus
+        
+        processed_docs = []
+        for doc in tqdm(corpus, desc='Preprocessing data'):
+            tokens = preprocess_string(doc, filters=self.default_filters)
+            processed_docs.append(' '.join(tokens))
+
+        processed_corpus = pd.Series(processed_docs)
+        processed_corpus.to_csv(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH, index=False)
+        logger.info(f'Corpus has been pre-processed and saved at {TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH}')
+        
+        return processed_corpus
