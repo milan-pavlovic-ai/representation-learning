@@ -153,7 +153,7 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # TF-IDF Representation Parameters
-        'tfidf__max_features': lambda: np.random.randint(1000, 10_000),              # Number of max features
+        'tfidf__max_features': lambda: np.random.randint(1000, 7000),                # Number of max features
         'tfidf__min_df': lambda: np.random.randint(1, 10),                           # Minimum document frequency
         'tfidf__max_df': lambda: np.random.uniform(0.5, 1),                          # Maximum document frequency 
         'tfidf__ngram_range': lambda: [(1, 1), (1, 2), (1, 3)][np.random.choice(3)], # n-gram for tf-idf representation 

@@ -70,8 +70,9 @@ class DataManager:
         STATE_SEED = 21
         BATCH_SIZE = 128
 
-        TRAIN_PORTION = 0.5
-        TEST_VALID_SPLIT = 0.5
+        TRAIN_SAMPLES = 20_000
+        VALID_SAMPLES = 5_000
+        TEST_SAMPLES = 25_000
 
         FEATURE_TEXT = 'review'
         FEATURE_LABEL = 'sentiment'
@@ -138,23 +139,30 @@ class DataManager:
         self.X_train, X_valid_test, self.y_train, y_valid_test = train_test_split(
             self.input_data,
             self.target_data,
-            train_size=DataManager.Config.TRAIN_PORTION,
+            train_size=DataManager.Config.TRAIN_SAMPLES / len(self.input_data),
             random_state=DataManager.Config.STATE_SEED,
+            stratify=self.target_data,
             shuffle=True
         )
 
         self.X_valid, self.X_test, self.y_valid, self.y_test = train_test_split(
             X_valid_test,
             y_valid_test,
-            test_size=DataManager.Config.TEST_VALID_SPLIT,
+            test_size=DataManager.Config.TEST_SAMPLES / len(X_valid_test),
             random_state=DataManager.Config.STATE_SEED,
+            stratify=y_valid_test,
             shuffle=True
         )
 
         # Combine
         self.train_data = pd.DataFrame({DataManager.Config.FEATURE_TEXT: self.X_train, DataManager.Config.FEATURE_LABEL: self.y_train})
+        logger.info(f'Training set: {len(self.train_data)} or {len(self.train_data) / len(self.input_data) * 100:.2f}%')
+        
         self.valid_data = pd.DataFrame({DataManager.Config.FEATURE_TEXT: self.X_valid, DataManager.Config.FEATURE_LABEL: self.y_valid})
+        logger.info(f'Validation set: {len(self.valid_data)} or {len(self.valid_data) / len(self.input_data) * 100:.2f}%')
+
         self.test_data = pd.DataFrame({DataManager.Config.FEATURE_TEXT: self.X_test, DataManager.Config.FEATURE_LABEL: self.y_test})
+        logger.info(f'Testing set: {len(self.test_data)} or {len(self.test_data) / len(self.input_data) * 100:.2f}%')
         return
     
     def __init_loaders(self) -> None:
