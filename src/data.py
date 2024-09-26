@@ -124,7 +124,7 @@ class DataManager:
         self.input_data = self.df[DataManager.Config.FEATURE_TEXT]
         self.target_data = self.df[DataManager.Config.FEATURE_LABEL]
 
-        logger.info(f'Data has been loaded from: {DataManager.Config.DATA_PATH}')
+        logger.warning(f'Data has been loaded from: {DataManager.Config.DATA_PATH}')
         return
 
     def __preprocess(self) -> None:
@@ -237,7 +237,7 @@ class TextPreprocessor:
         if os.path.exists(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH):
             processed_corpus = pd.read_csv(TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH, header=0)
             processed_corpus = pd.Series(processed_corpus.iloc[:, 0]) 
-            logger.info('Load pre-processed corpus')
+            logger.warning(f'Load pre-processed corpus from {TextPreprocessor.Config.CACHED_PROCESSED_DATA_PATH}')
             return processed_corpus
         
         processed_docs = []

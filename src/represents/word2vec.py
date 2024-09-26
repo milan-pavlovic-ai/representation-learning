@@ -175,19 +175,19 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # Word2Vec Representation Parameters
-        'w2v__vector_size': lambda: np.random.randint(1000, 7000),               # Dimensionality of the word vectors 
+        'w2v__vector_size': lambda: np.random.randint(128, 2049),                # Dimensionality of the word vectors 
         'w2v__window': lambda: np.random.randint(1, 11),                         # Maximum distance between the current and predicted word
         'w2v__min_count': lambda: np.random.randint(1, 10),                      # Minimum frequency count of words to be considered for training
         'w2v__sg': lambda: np.random.randint(0, 2),                              # 0 uses the CBOW approach, 1 uses the Skip-gram approach
-        'w2v__alpha': lambda: np.random.uniform(0, 2),                           # The initial learning rate.
+        'w2v__alpha': lambda: 10 ** np.random.uniform(-5, -1),                   # The initial learning rate.
         'w2v__negative': lambda: np.random.randint(5, 20),                       # The number of negative samples to use 
         'w2v__epochs': lambda: np.random.randint(5, 20),                         # The number of iterations over the corpus during training
         'w2v__workers': lambda: np.random.randint(10, 12),                       # The number of worker threads to train the model
 
         # Classifier Hyperparameters
-        'clf__learning_rate': lambda: np.random.uniform(1e-5, 1e-2),                # Learning rate 
+        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -1),              # Learning rate 
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
-        'clf__weight_decay': lambda: np.random.uniform(0, 0.1),                     # Weight decay for regularization
+        'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
         'clf__num_epochs': lambda: np.random.randint(10, 100)                       # Number of training epochs
