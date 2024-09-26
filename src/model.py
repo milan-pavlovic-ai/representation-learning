@@ -22,10 +22,32 @@ class TextRepresentation(nn.Module):
         - Subclasses should implement the `forward` method to transform text data into a numerical representation.
     """
 
-    def __init__(self) -> None:
-        """Initializes the TextRepresentation module"""
+    def __init__(self, hparams: Dict[str, Any]) -> None:
+        """Initializes the TextRepresentation module
+        
+        Args:
+            hparams (Dict[str, Any]): Hyper-paramters as dictionary.
+
+        Returns:
+            None
+        """
         super(TextRepresentation, self).__init__()
+        self.hparams = hparams
         return
+
+    def prepare(self, dataset: Any) -> None:
+        """Prepare of representation with the vectorizer with hyperparameters passed as keyword arguments.
+        
+        Args:
+            dataset: Dataset manager.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses of TextRepresentation.
+
+        Returns:
+            None
+        """
+        raise NotImplementedError("Subclasses should implement this!")
 
     def forward(self, inputs: Any) -> torch.Tensor:
         """Transforms the input data into a tensor representation.
@@ -41,21 +63,6 @@ class TextRepresentation(nn.Module):
         """
         raise NotImplementedError("Subclasses should implement this!")
 
-    def pretrain(self, dataset: Any, hparams: Dict[str, Any]) -> None:
-        """Pretrain of representation with the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
-        
-        Args:
-            dataset: Dataset manager.
-            hparams (Dict[str, Any]): Hyper-paramters as dictionary.
-
-        Raises:
-            NotImplementedError: This method must be implemented by subclasses of TextRepresentation.
-
-        Returns:
-            None
-        """
-        raise NotImplementedError("Subclasses should implement this!")
-
 
 class TextClassifier(nn.Module):
     """Text classifier that combines a text representation with a linear classifier for binary sentiment classification."""
@@ -64,34 +71,34 @@ class TextClassifier(nn.Module):
         """Initalize complete classifier
     
         Args:
-            hparams (Any): Hyper-paramters for initialization
+            hparams (Dict[str, Any]): Hyper-paramters for initialization
 
         Returns:
             None
         """
         super(TextClassifier, self).__init__()
+        self.hparams = hparams
         return
 
-    def pretrain_representation(self, dataset: Any, hparams) -> None:
-        """Pretraining of representation with hyperparameters passed as keyword arguments.
+    def prepare_representation(self, dataset: Any) -> None:
+        """Prepare of representation with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
-            hparams (dict): Hyper-parameters representation model
 
         Returns:
             None
         """
         raise NotImplementedError("Subclasses should implement this!")
 
-    def vectorization(self, inputs: Any) -> torch.Tensor:
+    def encode(self, inputs: Any) -> torch.Tensor:
         """Forward pass through the text representation.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Vectorized inputs.
+            torch.Tensor: Encoder outputs.
         """
         raise NotImplementedError("Subclasses should implement this!")
 
@@ -196,8 +203,8 @@ class ModelManager:
 
             for inputs, labels in tqdm(self.dataset.dataloader_train, desc=f'\nTraining epoch {epoch}/{num_epochs}'):
 
-                # vectorization
-                inputs = self.model.vectorization(inputs)
+                # Encoder
+                inputs = self.model.encode(inputs)
 
                 # Move to GPU
                 inputs = inputs.to(self.device)
@@ -261,8 +268,8 @@ class ModelManager:
         with torch.no_grad():
             for inputs, labels in tqdm(self.dataset.dataloader_valid, desc='Validating model'):
                 
-                # vectorization
-                inputs = self.model.vectorization(inputs)
+                # Encoder
+                inputs = self.model.encode(inputs)
 
                 # Move to GPU
                 inputs = inputs.float().to(self.device)
@@ -308,8 +315,8 @@ class ModelManager:
         # Calculate predictions
         with torch.no_grad():
             for inputs, labels in tqdm(self.dataset.dataloader_test, desc='Testing model'):
-                # Vectorization
-                inputs = the_model.vectorization(inputs)
+                # Encoder
+                inputs = the_model.encode(inputs)
 
                 # Move to GPU
                 inputs = inputs.float().to(self.device)
@@ -410,7 +417,7 @@ class ModelOptimizer:
             
             # Create model
             model = self.model_class(hparams)
-            model.pretrain_representation(self.dataset, hparams)
+            model.prepare_representation(self.dataset)
 
             # Train the model
             criterion = nn.BCELoss(reduction='mean')
