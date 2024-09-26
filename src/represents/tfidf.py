@@ -8,7 +8,6 @@ import torch
 import spacy
 import numpy as np
 import pandas as pd
-import torch.nn as nn
 
 from tqdm import tqdm
 from loguru import logger
@@ -18,7 +17,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from gensim.parsing.preprocessing import preprocess_string, remove_stopwords, strip_punctuation, stem_text
 
 from src.data import DataManager
-from src.model import ModelOptimizer, LinearClassifier, TextRepresentation
+from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, TextClassifier
 
 
 class TextPreprocessor:
@@ -146,7 +145,7 @@ class TfidfRepresentation(TextRepresentation):
         return text_features_tensor
 
 
-class TfidfClassifier(nn.Module):
+class TfidfClassifier(TextClassifier):
     """A classifier that combines a TF-IDF text representation with a linear classifier for binary sentiment classification."""
     
     def __init__(self, hparams: Dict[str, Any]) -> None:
@@ -158,7 +157,7 @@ class TfidfClassifier(nn.Module):
         Returns:
             None
         """
-        super(TfidfClassifier, self).__init__()
+        super(TfidfClassifier, self).__init__(hparams=hparams)
 
         self.representation = TfidfRepresentation()
         self.classifier = LinearClassifier(input_dim=hparams['tfidf__max_features'])
@@ -166,8 +165,8 @@ class TfidfClassifier(nn.Module):
         logger.info('Initialized TF-IDF Classifer')
         return
 
-    def pretrain(self, dataset: Any, hparams) -> None:
-        """Pretrain of representation with the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
+    def pretrain_representation(self, dataset: Any, hparams) -> None:
+        """Pretraining of representation with the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
@@ -179,35 +178,45 @@ class TfidfClassifier(nn.Module):
         self.representation.fit(dataset=dataset, hparams=hparams)
         return
 
-    def forward(self, inputs: Any) -> torch.Tensor:
-        """
-        Forward pass through the TF-IDF text representation and linear classifier.
+    def vectorization(self, inputs: Any) -> torch.Tensor:
+        """Forward pass through the TF-IDF text representation.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: The sigmoid-activated logits representing the class probabilities.
+            torch.Tensor: Vectorized inputs.
         """
         # Convert text to TF-IDF features
         text_features = self.representation(inputs)
         
-        # Linear classifier
-        outputs_prob = self.classifier(text_features)
+        return text_features
+
+    def forward(self, inputs: Any) -> torch.Tensor:
+        """Forward pass through the linear classifier.
         
+        Args:
+            inputs (Any): Input vectorized data. This is important because of the GPU usage.
+            
+        Returns:
+            torch.Tensor: The sigmoid-activated logits representing the class probabilities.
+        """
+        # Linear classifier
+        outputs_prob = self.classifier(inputs)
+
         return outputs_prob
 
 
 if __name__ == "__main__":
    
     # Prepare dataset
-    dataset = ReviewDataset(sample_size=0.01)
+    dataset = ReviewDataset(sample_size=None)
     dataset.prepare()
     
     # Define hyperparameter space
     param_dists = {
         # TF-IDF Representation Parameters
-        'tfidf__max_features': lambda: np.random.randint(100, 1000),               # Number of max features
+        'tfidf__max_features': lambda: np.random.randint(1000, 10_000),              # Number of max features
         'tfidf__min_df': lambda: np.random.randint(1, 10),                           # Minimum document frequency
         'tfidf__max_df': lambda: np.random.uniform(0.5, 1),                          # Maximum document frequency 
         'tfidf__ngram_range': lambda: [(1, 1), (1, 2), (1, 3)][np.random.choice(3)], # n-gram for tf-idf representation 
@@ -228,6 +237,6 @@ if __name__ == "__main__":
         model_class=TfidfClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=3
+        n_trials=10
     )
     optimizer.random_search()
