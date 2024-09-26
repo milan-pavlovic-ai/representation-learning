@@ -34,33 +34,37 @@ class TfidfDataset(DataManager):
 class TfidfRepresentation(TextRepresentation):
     """TF-IDF Representation"""
 
-    def __init__(self) -> None:
+    def __init__(self, hparams: Dict[str, Any]) -> None:
         """Initializes the TF-IDF vectorizer.
+
+        Args:
+            hparams (Dict[str, Any]): Hyper-parameters for TfidfVectorizer (e.g., max_features, min_df, etc.).
 
         Returns:
             None
         """
-        super(TfidfRepresentation, self).__init__()
+        super(TfidfRepresentation, self).__init__(hparams=hparams)
         
-        self.model = None
         self.prefix = 'tfidf__'
+        self.tfidf_hparams = {key.replace(self.prefix, ''): value for key, value in self.hparams.items() if key.startswith(self.prefix)}
+
+        self.model = None
+        self.output_dim = self.tfidf_hparams['max_features']
 
         logger.info('Initialized TF-IDF representation')
         return
 
-    def fit(self, dataset: Any, hparams) -> None:
+    def prepare(self, dataset: Any) -> None:
         """Fit the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
-            hparams (dict): Hyper-parameters for TfidfVectorizer (e.g., max_features, min_df, etc.).
 
         Returns:
             None
         """
         # Initialize
-        tfidf_hparams = {key.replace(self.prefix, ''): value for key, value in hparams.items() if key.startswith(self.prefix)}
-        self.model = TfidfVectorizer(**tfidf_hparams)
+        self.model = TfidfVectorizer(**self.tfidf_hparams)
 
         # Train representation on the entire corpus (no batch processing here)
         self.model.fit(dataset.X_train)
@@ -79,6 +83,7 @@ class TfidfRepresentation(TextRepresentation):
         """
         text_features = self.model.transform(inputs).toarray()
         text_features_tensor = torch.tensor(text_features, dtype=torch.float32)
+        
         return text_features_tensor
 
 
@@ -96,33 +101,32 @@ class TfidfClassifier(TextClassifier):
         """
         super(TfidfClassifier, self).__init__(hparams=hparams)
 
-        self.representation = TfidfRepresentation()
-        self.classifier = LinearClassifier(input_dim=hparams['tfidf__max_features'])
+        self.representation = TfidfRepresentation(hparams=self.hparams)
+        self.classifier = LinearClassifier(input_dim=self.representation.output_dim)
 
         logger.info('Initialized TF-IDF Classifer')
         return
 
-    def pretrain_representation(self, dataset: Any, hparams) -> None:
+    def prepare_representation(self, dataset: Any) -> None:
         """Pretraining of representation with the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
-            hparams (dict): Hyper-parameters for TfidfVectorizer (e.g., max_features, min_df, etc.).
 
         Returns:
             None
         """
-        self.representation.fit(dataset=dataset, hparams=hparams)
+        self.representation.prepare(dataset=dataset)
         return
 
-    def vectorization(self, inputs: Any) -> torch.Tensor:
+    def encode(self, inputs: Any) -> torch.Tensor:
         """Forward pass through the TF-IDF text representation.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Vectorized inputs.
+            torch.Tensor: Encoder output.
         """
         # Convert text to TF-IDF features
         text_features = self.representation(inputs)
