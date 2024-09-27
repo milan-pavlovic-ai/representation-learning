@@ -42,6 +42,8 @@ class TfidfRepresentation(TextRepresentation):
     def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initializes the TF-IDF vectorizer.
 
+        Fit the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
+
         Args:
             hparams (Dict[str, Any]): Hyper-parameters for TfidfVectorizer (e.g., max_features, min_df, etc.).
             dataset: Dataset manager.
@@ -54,47 +56,44 @@ class TfidfRepresentation(TextRepresentation):
             dataset=dataset
         )
         
+        # Hyper-parameters
         self.prefix = 'tfidf__'
         self.tfidf_hparams = {key.replace(self.prefix, ''): value for key, value in self.hparams.items() if key.startswith(self.prefix)}
-
-        self.model = None
         self.output_dim = self.tfidf_hparams['max_features']
 
-        logger.info('Initialized TF-IDF representation')
-        return
-
-    def prepare(self, inputs: Any = None) -> Any:
-        """Fit the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
-
-        Args:
-            inputs (Any): Raw inputs. Defaults to None.
-
-        Returns:
-            None
-        """
         # Initialize
         self.model = TfidfVectorizer(**self.tfidf_hparams)
 
         # Train representation on the entire corpus (no batch processing here)
         self.model.fit(self.dataset.X_train)
 
-        logger.info('TF-IDF Representation has been trained')
-        
-        return inputs
+        logger.info('Initialized and trained TF-IDF representation')
+        return
 
-    def forward(self, inputs: Any):
-        """Transforms input text using the pre-fitted TF-IDF vectorizer.
-        
+    def vectorize(self, inputs: Any) -> Any:
+        """Vectorize input text with TF-IDF vectorizer
+
         Args:
-            inputs (Any): List of input text documents to transform.
-            
+            inputs (Any): Raw inputs. Defaults to None.
+
         Returns:
-            torch.Tensor: Transformed TF-IDF features in dense array format.
+            Any: Transformed TF-IDF features in dense array format.
         """
         text_features = self.model.transform(inputs).toarray()
         text_features_tensor = torch.tensor(text_features, dtype=torch.float32)
         
         return text_features_tensor
+
+    def forward(self, inputs: Any) -> torch.Tensor:
+        """Transforms the input data into a tensor representation.
+        
+        Args:
+            inputs (Any): Vectorized inputs
+            
+        Returns:
+            torch.Tensor: Transformed TF-IDF features in dense array format.
+        """
+        return inputs
 
 
 class TfidfClassifier(TextClassifier):
@@ -121,29 +120,27 @@ class TfidfClassifier(TextClassifier):
         logger.info('Initialized TF-IDF Classifer')
         return
 
-    def prepare_representation(self) -> None:
-        """Pretraining of representation with the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
+    def prepare(self) -> None:
+        """Prepare representation with the TF-IDF vectorizer.
         
         Returns:
             None
         """
-        self.representation.prepare()
-        self.representation.to(self.device)
         return
 
-    def encode(self, inputs: Any) -> torch.Tensor:
-        """Forward pass through the TF-IDF text representation.
+    def encode(self, inputs: Any) -> Any:
+        """Encode text representation with TF-IDF into vectors.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Encoder output.
+            Any: Encoder output.
         """
-        # Convert text to TF-IDF features
-        text_features = self.representation(inputs)
+        encoded_inputs = self.representation.vectorize(inputs)
+        encoded_inputs = encoded_inputs.float()
         
-        return text_features
+        return encoded_inputs
 
     def forward(self, inputs: Any) -> torch.Tensor:
         """Forward pass through the linear classifier.
@@ -154,8 +151,11 @@ class TfidfClassifier(TextClassifier):
         Returns:
             torch.Tensor: The sigmoid-activated logits representing the class probabilities.
         """
+        # Convert text to TF-IDF features
+        text_features = self.representation(inputs)
+
         # Linear classifier
-        outputs_prob = self.classifier(inputs)
+        outputs_prob = self.classifier(text_features)
 
         return outputs_prob
 
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(10, 100)                       # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization

@@ -40,17 +40,17 @@ class TextRepresentation(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return
 
-    def prepare(self, inputs: Any = None) -> Any:
+    def vectorize(self, inputs: Any) -> Any:
         """Prepare of representation with the vectorizer.
 
         Args:
-            inputs (Any): Inputs. Defaults to None.
+            inputs (Any): Inputs (raw words, strings).
 
         Raises:
             NotImplementedError: This method must be implemented by subclasses of TextRepresentation.
 
         Returns:
-            None
+            Any: Vectorized inputs
         """
         raise NotImplementedError("Subclasses should implement this!")
 
@@ -88,27 +88,27 @@ class TextClassifier(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return
 
-    def prepare_representation(self) -> None:
-        """Prepare of representation.
+    def prepare(self) -> None:
+        """Prepare the text representation.
 
         Returns:
             None
         """
         raise NotImplementedError("Subclasses should implement this!")
 
-    def encode(self, inputs: Any) -> torch.Tensor:
-        """Forward pass through the text representation.
+    def encode(self, inputs: Any) -> Any:
+        """Encode text representation into vectors
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Encoder outputs.
+            Any: Encoder vectors.
         """
         raise NotImplementedError("Subclasses should implement this!")
 
     def forward(self, inputs: Any) -> torch.Tensor:
-        """Forward pass through the main classifier.
+        """Forward pass through the text representation and main classifier.
         
         Args:
             inputs (Any): Input vectorized data. This is important because of the GPU usage.
@@ -422,12 +422,15 @@ class ModelOptimizer:
         best_model = None
         
         for trial_id in range(self.n_trials):
+            # Clean cache
+            torch.cuda.empty_cache()
+
             # Sample hyperparameters
             hparams = {key: distribution() for key, distribution in self.param_dists.items()}
             
             # Create model
             model = self.model_class(hparams, self.dataset)
-            model.prepare_representation()
+            model.prepare()
 
             # Train the model
             criterion = nn.BCELoss(reduction='mean')
@@ -463,6 +466,9 @@ class ModelOptimizer:
                 best_params = hparams
                 best_model = copy.deepcopy(model)
                 best_trial = trial_id
+
+            # Ensure all operations are done
+            torch.cuda.synchronize()
 
         # Testing
         model_manager.test(best_model) 

@@ -98,14 +98,14 @@ class LSTMRepresentation(TextRepresentation):
         logger.info('Initialized LSTM representation')
         return
 
-    def prepare(self, inputs: Any = None) -> Any:
-        """Prepare the LSTM vectorizer.
+    def vectorize(self, inputs: Any) -> Any:
+        """Create word vectors for embedding layer
 
         Args:
-            inputs (Any): Inputs. Defualts to None.
+            inputs (Any): Raw inputs. Defualts to None.
 
         Returns:
-            None
+            Any: Vectorized words
         """
         # Vectorizer
         all_docs_tensors = []
@@ -122,10 +122,10 @@ class LSTMRepresentation(TextRepresentation):
         return all_docs_tensors_final
 
     def forward(self, inputs: Any) -> torch.Tensor:
-        """Transforms input text using the pre-fitted LSTM vectorizer.
+        """Transforms input vectors using the LSTM.
         
         Args:
-            inputs (Any): List of input text documents to transform.
+            inputs (Any): Vectors.
             
         Returns:
             torch.Tensor: Transformed LSTM features in dense array format.
@@ -171,35 +171,35 @@ class LSTMClassifier(TextClassifier):
             dataset=dataset
         )
 
-        self.representation = LSTMRepresentation(hparams=hparams, dataset=self.dataset)
+        self.representation = LSTMRepresentation(hparams=self.hparams, dataset=self.dataset)
         self.classifier = LinearClassifier(input_dim=self.representation.output_dim)
 
         logger.info('Initialized LSTM Classifer')
         return
 
-    def prepare_representation(self) -> None:
-        """Pretraining of representation with the LSTM.
+    def prepare(self) -> None:
+        """Prepare representation with the LSTM.
 
         Returns:
             None
         """
         return
 
-    def encode(self, inputs: Any) -> torch.Tensor:
-        """Forward pass through the LSTM text representation.
+    def encode(self, inputs: Any) -> Any:
+        """Encode text representation for embedding layer.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Encoder output.
+            Any: Encoder output.
         """
-        inputs_vectorized = self.representation.prepare(inputs)
+        inputs_vectorized = self.representation.vectorize(inputs)
 
         return inputs_vectorized
 
     def forward(self, inputs: Any) -> torch.Tensor:
-        """Forward pass through the linear classifier.
+        """Forward pass through text representation and linear classifier.
         
         Args:
             inputs (Any): Input vectorized data. This is important because of the GPU usage.
