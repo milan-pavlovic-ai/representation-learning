@@ -5,6 +5,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'))
 
 import copy
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -408,6 +410,11 @@ class ModelOptimizer:
         Returns:
             None
         """
+        # Guarantees random start
+        np.random.seed(None)
+        random.seed(None)
+
+        # Initialize
         best_f1_score: float = 0.0
         best_params: Dict[str, Any] = {}
         best_trial = -1

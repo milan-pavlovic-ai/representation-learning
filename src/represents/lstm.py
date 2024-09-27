@@ -119,8 +119,6 @@ class LSTMRepresentation(TextRepresentation):
 
         all_docs_tensors_final = pad_sequence(all_docs_tensors, batch_first=True, padding_value=0)
 
-        logger.info('LSTM Representation has been prepared')
-        
         return all_docs_tensors_final
 
     def forward(self, inputs: Any) -> torch.Tensor:
