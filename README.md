@@ -5,7 +5,6 @@
 
 In NLP, **textual representations** can capture syntax, semantics, and context, which are all essential for tasks like sentiment analysis, machine translation, text summarization, etc.
 
-## Types
 Representation learning can be categorized based on:
 - **Learning Type**: Supervised, Unsupervised, Semi-Supervised, and Self-Supervised learning.
 - **Data Format**: Tabular, Graph, Text, Audio, Image, Video, etc. 
