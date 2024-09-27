@@ -14,7 +14,7 @@ import numpy as np
 
 from loguru import logger
 from typing import Dict, Any
-from transformers import T5Model, T5Tokenizer, T5Config
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 from src.data import DataManager, TextPreprocessor
 from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, TextClassifier
@@ -70,11 +70,8 @@ class T5Representation(TextRepresentation):
         self.tokenizer = T5Tokenizer.from_pretrained(self.pretrained_model_name)
 
         # T5 model
-        self.model = T5Model.from_pretrained(self.pretrained_model_name)
-
-        # Configuration
-        self.config = T5Config.from_pretrained(self.pretrained_model_name)
-        self.output_dim = self.config.hidden_size
+        self.model = T5ForConditionalGeneration.from_pretrained(self.pretrained_model_name)
+        self.output_dim = self.model.config.d_model
 
         # Freeze weights if only use pretrained model
         if not self.use_fine_tuning:
@@ -117,7 +114,7 @@ class T5Representation(TextRepresentation):
         input_ids = inputs['input_ids']
         attention_mask = inputs['attention_mask']
 
-        t5_outputs = self.model(
+        t5_outputs = self.model.encoder(
             input_ids=input_ids,
             attention_mask=attention_mask
         )
@@ -203,12 +200,12 @@ if __name__ == "__main__":
     param_dists = {
         # T5 Representation Parameters
         't5__sequence_len': lambda: np.random.randint(32, 129),                   # Number of tokens in sentence (document)
-        't5__fine_tuning': lambda: np.random.choice([True, False]),               # Fine tune pretrained models or not
+        't5__fine_tuning': lambda: np.random.choice([False]),               # Fine tune pretrained models or not
         't5__pretrained_model': lambda: np.random.choice([
             't5-small',
             't5-base',
             # 't5-large',
-            'google/t5-v1_1-base'
+            # 'google/t5-v1_1-base'
         ]),                                                                         # Pretrained Models
 
         # Classifier Hyperparameters
@@ -217,7 +214,7 @@ if __name__ == "__main__":
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(10, 100)                       # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(2, 3)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
