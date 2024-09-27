@@ -114,10 +114,10 @@ class LSTMRepresentation(TextRepresentation):
         for doc in inputs:
             tokens = self.analyzer(doc)
             doc_vector = [1 + self.vocab[word] for word in tokens if word in self.vocab]
-            doc_tensor = torch.tensor(doc_vector[:max_sequence_len], dtype=torch.long)
+            doc_tensor = torch.tensor(doc_vector[:max_sequence_len], dtype=torch.long).to(self.device)
             all_docs_tensors.append(doc_tensor)
 
-        all_docs_tensors_final = pad_sequence(all_docs_tensors, batch_first=True, padding_value=0)
+        all_docs_tensors_final = pad_sequence(all_docs_tensors, batch_first=True, padding_value=0).to(self.device)
 
         return all_docs_tensors_final
 
@@ -138,8 +138,8 @@ class LSTMRepresentation(TextRepresentation):
         num_directions = 2 if self.is_bidirect else 1
 
         hidden = (
-            torch.zeros(num_directions * self.num_layers, batch_size, self.hidden_dim),
-            torch.zeros(num_directions * self.num_layers, batch_size, self.hidden_dim)
+            torch.zeros(num_directions * self.num_layers, batch_size, self.hidden_dim).to(self.device),
+            torch.zeros(num_directions * self.num_layers, batch_size, self.hidden_dim).to(self.device)
         )
 
         lstm_out, (hidden, cell) = self.model(embedded, hidden)                     # lstm_out: [batch_size, sentence_length, hidden_dim]
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # Word vectorizer 
-        'vec__sequence_len': lambda: np.random.randint(10, 60),                     # Sequence length during the initial vectorization of words
+        'vec__sequence_len': lambda: np.random.randint(32, 129),                    # Sequence length during the initial vectorization of words
 
         # LSTM Representation Parameters
         'lstm__embedding_dim': lambda: np.random.randint(128, 2049),                # Dimensionality of the embedding vectors (size of each word vector)
@@ -240,7 +240,7 @@ if __name__ == "__main__":
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(2, 3)                       # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
@@ -248,6 +248,6 @@ if __name__ == "__main__":
         model_class=LSTMClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=1
+        n_trials=10
     )
     optimizer.random_search()

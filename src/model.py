@@ -37,6 +37,7 @@ class TextRepresentation(nn.Module):
         super(TextRepresentation, self).__init__()
         self.hparams = hparams
         self.dataset = dataset
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return
 
     def prepare(self, inputs: Any = None) -> Any:
@@ -276,7 +277,7 @@ class ModelManager:
                 inputs = self.model.encode(inputs)
 
                 # Move to GPU
-                inputs = inputs.float().to(self.model.device)
+                inputs = inputs.to(self.model.device)
                 labels = labels.float().view(-1, 1).to(self.model.device)
                 
                 # Predictions
@@ -323,7 +324,7 @@ class ModelManager:
                 inputs = the_model.encode(inputs)
 
                 # Move to GPU
-                inputs = inputs.float().to(self.model.device)
+                inputs = inputs.to(self.model.device)
                 labels = labels.float().view(-1, 1) 
                 
                 # Predictions
