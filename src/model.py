@@ -78,6 +78,7 @@ class TextClassifier(nn.Module):
         """
         super(TextClassifier, self).__init__()
         self.hparams = hparams
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return
 
     def prepare_representation(self, dataset: Any) -> None:
@@ -152,11 +153,11 @@ class ModelManager:
         """Model Configuration"""
         THRESHOLD = 0.5
 
-    def __init__(self, model: nn.Module, criterion: nn.Module, optimizer: optim.Optimizer, dataset: Any) -> None:
+    def __init__(self, model: Any, criterion: nn.Module, optimizer: optim.Optimizer, dataset: Any) -> None:
         """Initializes the ModelTrainer
 
         Args:
-            model (nn.Module): The model to train.
+            model (Any): The model to train.
             criterion (nn.Module): The loss function.
             optimizer (optim.Optimizer): The optimizer for model training.
             dataset (ReviewDataset): Processed dataset.
@@ -171,8 +172,7 @@ class ModelManager:
         self.dataset = dataset
 
         # Set device
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.to(self.device)
+        self.model.to(self.model.device)
         return
 
     def train(self, trial_id: int, total_trials: int, num_epochs: int, patience: int) -> None:
@@ -207,8 +207,8 @@ class ModelManager:
                 inputs = self.model.encode(inputs)
 
                 # Move to GPU
-                inputs = inputs.to(self.device)
-                labels = labels.float().view(-1, 1).to(self.device)
+                inputs = inputs.to(self.model.device)
+                labels = labels.float().view(-1, 1).to(self.model.device)
 
                 # Forward pass
                 self.optimizer.zero_grad()
@@ -272,8 +272,8 @@ class ModelManager:
                 inputs = self.model.encode(inputs)
 
                 # Move to GPU
-                inputs = inputs.float().to(self.device)
-                labels = labels.float().view(-1, 1).to(self.device)
+                inputs = inputs.float().to(self.model.device)
+                labels = labels.float().view(-1, 1).to(self.model.device)
                 
                 # Predictions
                 outputs = self.model(inputs)
@@ -319,7 +319,7 @@ class ModelManager:
                 inputs = the_model.encode(inputs)
 
                 # Move to GPU
-                inputs = inputs.float().to(self.device)
+                inputs = inputs.float().to(self.model.device)
                 labels = labels.float().view(-1, 1) 
                 
                 # Predictions

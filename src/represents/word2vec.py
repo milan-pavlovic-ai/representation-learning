@@ -5,6 +5,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..'))
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 from loguru import logger
@@ -41,35 +42,45 @@ class Word2VecDataset(DataManager):
 class Word2VecRepresentation(TextRepresentation):
     """Word2Vec Representation"""
 
-    def __init__(self) -> None:
+    def __init__(self, hparams: Dict[str, Any]) -> None:
         """Initializes the Word2Vec vectorizer.
+
+        Args:
+            hparams (Dict[str, Any]): Hyper-parameters.
 
         Returns:
             None
         """
-        super(Word2VecRepresentation, self).__init__()
+        super(Word2VecRepresentation, self).__init__(hparams=hparams)
         
+        self.prefix_wc = 'w2v__'
+        self.word2vec_hparams = {key.replace(self.prefix_wc, ''): value for key, value in self.hparams.items() if key.startswith(self.prefix_wc)}
+
+        self.prefix_enc = 'enc__'
+        self.encoder_hparams = {key.replace(self.prefix_enc, ''): value for key, value in self.hparams.items() if key.startswith(self.prefix_enc)}
+
         self.model = None
-        self.prefix = 'w2v__'
+        
+        self.use_attention = self.encoder_hparams['use_attention']
+        self.output_dim = self.word2vec_hparams['vector_size']
 
         logger.info('Initialized Word2Vec representation')
         return
 
-    def fit(self, dataset: Any, hparams) -> None:
+    def prepare(self, dataset: Any) -> None:
         """Fit the Word2Vec vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
-            hparams (dict): Hyper-parameters
 
         Returns:
             None
         """
-        # Fit the model
-        word2vec_hparams = {key.replace(self.prefix, ''): value for key, value in hparams.items() if key.startswith(self.prefix)}
+        # Prepare data
         sentences = dataset.X_train.apply(lambda x: x.split())
         
-        self.model = Word2Vec(sentences=sentences, **word2vec_hparams)
+        # Fit the model
+        self.model = Word2Vec(sentences=sentences, **self.word2vec_hparams)
 
         logger.info('Word2Vec Representation has been trained')
         return
@@ -98,10 +109,15 @@ class Word2VecRepresentation(TextRepresentation):
         embeddings_array = [np.array(doc, dtype=np.float32) for doc in embeddings]
         embeddings_padded = pad_sequence([torch.tensor(doc) for doc in embeddings_array], batch_first=True)
    
-        # Create one embeding per documents by averaging words in documents
-        embeddings_avg = embeddings_padded.mean(dim=1) 
+        # Create a one embedding per documment based on words embeddings
+        if self.use_attention:
+            attention_weights = F.softmax(embeddings_padded, dim=1)         # Shape: [batch_size, seq_length, 1]
+            weighted_embeddings = embeddings_padded * attention_weights     # Broadcasting to get weighted embeddings
+            embeddings_doc = weighted_embeddings.sum(dim=1)                 # Shape: [batch_size, embedding_dim]
+        else:
+            embeddings_doc = embeddings_padded.mean(dim=1)
 
-        return embeddings_avg
+        return embeddings_doc
 
 
 class Word2VecClassifier(TextClassifier):
@@ -117,34 +133,34 @@ class Word2VecClassifier(TextClassifier):
             None
         """
         super(Word2VecClassifier, self).__init__(hparams=hparams)
-
-        self.representation = Word2VecRepresentation()
-        self.classifier = LinearClassifier(input_dim=hparams['w2v__vector_size'])
+        
+        self.representation = Word2VecRepresentation(hparams=self.hparams)
+        self.classifier = LinearClassifier(input_dim=self.representation.output_dim)
 
         logger.info('Initialized Word2Vec Classifer')
         return
 
-    def pretrain_representation(self, dataset: Any, hparams) -> None:
+    def prepare_representation(self, dataset: Any) -> None:
         """Pretraining of representation with the Word2Vec vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
             dataset: Dataset manager.
-            hparams (dict): Hyper-parameters
 
         Returns:
             None
         """
-        self.representation.fit(dataset=dataset, hparams=hparams)
+        self.representation.prepare(dataset=dataset)
+        self.representation.to(self.device)
         return
 
-    def vectorization(self, inputs: Any) -> torch.Tensor:
+    def encode(self, inputs: Any) -> torch.Tensor:
         """Forward pass through the Word2Vec text representation.
         
         Args:
             inputs (Any): Input text data, usually a list of strings or tokenized data.
             
         Returns:
-            torch.Tensor: Vectorized inputs.
+            torch.Tensor: Encoder output.
         """
         # Convert text to Word2Vec features
         text_features = self.representation(inputs)
@@ -175,7 +191,7 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # Word2Vec Representation Parameters
-        'w2v__vector_size': lambda: np.random.randint(128, 2049),                # Dimensionality of the word vectors 
+        'w2v__vector_size': lambda: np.random.randint(128, 2049),                # Dimensionality of the word vectors
         'w2v__window': lambda: np.random.randint(1, 11),                         # Maximum distance between the current and predicted word
         'w2v__min_count': lambda: np.random.randint(1, 10),                      # Minimum frequency count of words to be considered for training
         'w2v__sg': lambda: np.random.randint(0, 2),                              # 0 uses the CBOW approach, 1 uses the Skip-gram approach
@@ -183,6 +199,9 @@ if __name__ == "__main__":
         'w2v__negative': lambda: np.random.randint(5, 20),                       # The number of negative samples to use 
         'w2v__epochs': lambda: np.random.randint(5, 20),                         # The number of iterations over the corpus during training
         'w2v__workers': lambda: np.random.randint(10, 12),                       # The number of worker threads to train the model
+
+        # Encoder
+        'enc__use_attention': lambda: np.random.choice([False, True]),           # Use attention pooling for document embeddings, otherwise use average
 
         # Classifier Hyperparameters
         'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -1),              # Learning rate 
