@@ -42,16 +42,20 @@ class Word2VecDataset(DataManager):
 class Word2VecRepresentation(TextRepresentation):
     """Word2Vec Representation"""
 
-    def __init__(self, hparams: Dict[str, Any]) -> None:
+    def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initializes the Word2Vec vectorizer.
 
         Args:
             hparams (Dict[str, Any]): Hyper-parameters.
+            dataset: Dataset manager.
 
         Returns:
             None
         """
-        super(Word2VecRepresentation, self).__init__(hparams=hparams)
+        super(Word2VecRepresentation, self).__init__(
+            hparams=hparams,
+            dataset=dataset
+        )
         
         self.prefix_wc = 'w2v__'
         self.word2vec_hparams = {key.replace(self.prefix_wc, ''): value for key, value in self.hparams.items() if key.startswith(self.prefix_wc)}
@@ -67,17 +71,14 @@ class Word2VecRepresentation(TextRepresentation):
         logger.info('Initialized Word2Vec representation')
         return
 
-    def prepare(self, dataset: Any) -> None:
-        """Fit the Word2Vec vectorizer with hyperparameters passed as keyword arguments.
-        
-        Args:
-            dataset: Dataset manager.
+    def prepare(self) -> None:
+        """Fit the Word2Vec vectorizer
 
         Returns:
             None
         """
         # Prepare data
-        sentences = dataset.X_train.apply(lambda x: x.split())
+        sentences = self.dataset.X_train.apply(lambda x: x.split())
         
         # Fit the model
         self.model = Word2Vec(sentences=sentences, **self.word2vec_hparams)
@@ -85,17 +86,18 @@ class Word2VecRepresentation(TextRepresentation):
         logger.info('Word2Vec Representation has been trained')
         return
 
-    def forward(self, inputs):
+    def forward(self, inputs: Any):
         """Transforms input text using the pre-fitted Word2Vec vectorizer.
         
         Args:
-            inputs (list of str): List of input text documents to transform.
+            inputs (Any): List of input text documents to transform.
             
         Returns:
             torch.Tensor: Transformed Word2Vec features in dense array format.
         """
-        # Create embeddings
+        # Embeddings
         embeddings = []
+        
         for doc in inputs:
             words = doc.split()
             doc_embeddings = [self.model.wv[word] for word in words if word in self.model.wv]
@@ -123,24 +125,28 @@ class Word2VecRepresentation(TextRepresentation):
 class Word2VecClassifier(TextClassifier):
     """A classifier that combines a Word2Vec text representation with a linear classifier for binary sentiment classification."""
     
-    def __init__(self, hparams: Dict[str, Any]) -> None:
+    def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initalize Word2Vec classifier
     
         Args:
             hparams (Any): Hyper-paramters for initialization
+            dataset: Dataset manager.
 
         Returns:
             None
         """
-        super(Word2VecClassifier, self).__init__(hparams=hparams)
+        super(Word2VecClassifier, self).__init__(
+            hparams=hparams,
+            dataset=dataset
+        )
         
-        self.representation = Word2VecRepresentation(hparams=self.hparams)
+        self.representation = Word2VecRepresentation(hparams=self.hparams, dataset=self.dataset)
         self.classifier = LinearClassifier(input_dim=self.representation.output_dim)
 
         logger.info('Initialized Word2Vec Classifer')
         return
 
-    def prepare_representation(self, dataset: Any) -> None:
+    def prepare_representation(self) -> None:
         """Pretraining of representation with the Word2Vec vectorizer with hyperparameters passed as keyword arguments.
         
         Args:
@@ -149,7 +155,7 @@ class Word2VecClassifier(TextClassifier):
         Returns:
             None
         """
-        self.representation.prepare(dataset=dataset)
+        self.representation.prepare()
         self.representation.to(self.device)
         return
 

@@ -22,24 +22,23 @@ class TextRepresentation(nn.Module):
         - Subclasses should implement the `forward` method to transform text data into a numerical representation.
     """
 
-    def __init__(self, hparams: Dict[str, Any]) -> None:
+    def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initializes the TextRepresentation module
         
         Args:
             hparams (Dict[str, Any]): Hyper-paramters as dictionary.
+            dataset: Dataset manager.
 
         Returns:
             None
         """
         super(TextRepresentation, self).__init__()
         self.hparams = hparams
+        self.dataset = dataset
         return
 
-    def prepare(self, dataset: Any) -> None:
-        """Prepare of representation with the vectorizer with hyperparameters passed as keyword arguments.
-        
-        Args:
-            dataset: Dataset manager.
+    def prepare(self) -> None:
+        """Prepare of representation with the vectorizer.
 
         Raises:
             NotImplementedError: This method must be implemented by subclasses of TextRepresentation.
@@ -67,25 +66,24 @@ class TextRepresentation(nn.Module):
 class TextClassifier(nn.Module):
     """Text classifier that combines a text representation with a linear classifier for binary sentiment classification."""
     
-    def __init__(self, hparams: Dict[str, Any]) -> None:
+    def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initalize complete classifier
     
         Args:
             hparams (Dict[str, Any]): Hyper-paramters for initialization
+            dataset: Dataset manager.
 
         Returns:
             None
         """
         super(TextClassifier, self).__init__()
         self.hparams = hparams
+        self.dataset = dataset
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         return
 
-    def prepare_representation(self, dataset: Any) -> None:
-        """Prepare of representation with hyperparameters passed as keyword arguments.
-        
-        Args:
-            dataset: Dataset manager.
+    def prepare_representation(self) -> None:
+        """Prepare of representation.
 
         Returns:
             None
@@ -143,6 +141,7 @@ class LinearClassifier(nn.Module):
         """
         outputs = self.fc(inputs)
         outputs_prob = torch.sigmoid(outputs)
+        
         return outputs_prob
 
 
@@ -416,8 +415,8 @@ class ModelOptimizer:
             hparams = {key: distribution() for key, distribution in self.param_dists.items()}
             
             # Create model
-            model = self.model_class(hparams)
-            model.prepare_representation(self.dataset)
+            model = self.model_class(hparams, self.dataset)
+            model.prepare_representation()
 
             # Train the model
             criterion = nn.BCELoss(reduction='mean')
