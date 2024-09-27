@@ -422,12 +422,17 @@ class ModelOptimizer:
         best_model = None
         
         for trial_id in range(self.n_trials):
+            logger.warning(f'\nExecuting trial {trial_id}')
+
             # Clean cache
             torch.cuda.empty_cache()
 
             # Sample hyperparameters
             hparams = {key: distribution() for key, distribution in self.param_dists.items()}
-            
+            logger.info("Sampled Hyperparameters:")
+            for key, value in hparams.items():
+                logger.info(f"{key}: {value}")
+
             # Create model
             model = self.model_class(hparams, self.dataset)
             model.prepare()

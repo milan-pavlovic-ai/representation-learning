@@ -43,7 +43,7 @@ class BERTDataset(DataManager):
 class BERTRepresentation(TextRepresentation):
     """BERT Representation"""
 
-    def __init__(self, hparams: Dict[str: Any], dataset: Any) -> None:
+    def __init__(self, hparams: Dict[str, Any], dataset: Any) -> None:
         """Initializes the BERT vectorizer.
 
         Args:
@@ -79,6 +79,8 @@ class BERTRepresentation(TextRepresentation):
         if not self.use_fine_tuning:
             for param in self.model.parameters():
                 param.requires_grad = False
+        else:
+            self.device = torch.device('cpu')
 
         logger.info('Initialized BERT representation')
         return
@@ -142,6 +144,9 @@ class BERTClassifier(TextClassifier):
             dataset=dataset
         )
 
+        if self.hparams['bert__fine_tuning']:
+            self.device = torch.device('cpu')
+
         self.representation = BERTRepresentation(hparams=self.hparams, dataset=self.dataset)
         self.classifier = LinearClassifier(input_dim=self.representation.output_dim)
 
@@ -200,10 +205,9 @@ if __name__ == "__main__":
         'bert__fine_tuning': lambda: np.random.choice([True, False]),               # Fine tune pretrained models or not
         'bert__pretrained_model': lambda: np.random.choice([
             'bert-base-uncased',
-            'bert-large-uncased',
-            'roberta-base',
-            'albert-base-v2',
-            'electra-base-discriminator'
+            # 'bert-large-uncased',
+            'bert-base-cased',
+            # 'bert-large-cased'
         ]),                                                                         # Pretrained Models
 
         # Classifier Hyperparameters
@@ -220,6 +224,6 @@ if __name__ == "__main__":
         model_class=BERTClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=1
+        n_trials=10
     )
     optimizer.random_search()
