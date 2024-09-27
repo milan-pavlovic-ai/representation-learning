@@ -68,9 +68,12 @@ class GPTRepresentation(TextRepresentation):
 
         # Tokenizer
         self.tokenizer = GPT2Tokenizer.from_pretrained(self.pretrained_model_name)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
         # GPT model
         self.model = GPT2Model.from_pretrained(self.pretrained_model_name)
+        self.model.resize_token_embeddings(len(self.tokenizer))
 
         # Configuration
         self.config = GPT2Config.from_pretrained(self.pretrained_model_name)
@@ -206,8 +209,8 @@ if __name__ == "__main__":
         'gpt__fine_tuning': lambda: np.random.choice([True, False]),               # Fine tune pretrained models or not
         'gpt__pretrained_model': lambda: np.random.choice([
             'gpt2',
-            'gpt2-medium',
-            'gpt2-large',
+            # 'gpt2-medium',
+            # 'gpt2-large',
             'distilgpt-2'
         ]),                                                                         # Pretrained Models
 

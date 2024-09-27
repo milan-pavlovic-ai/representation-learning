@@ -277,6 +277,7 @@ class ModelManager:
                 inputs = self.model.encode(inputs)
 
                 # Move to GPU
+                torch.cuda.empty_cache()
                 inputs = inputs.to(self.model.device)
                 labels = labels.float().view(-1, 1).to(self.model.device)
                 
@@ -293,6 +294,8 @@ class ModelManager:
 
                 correct_preds += (predicted == labels).sum().item()
                 total_preds += labels.size(0)
+                
+                torch.cuda.synchronize()
 
         f1_result = f1_score(y_true, y_pred, average='binary')
         accuracy = correct_preds / total_preds * 100 if total_preds > 0 else 0.0

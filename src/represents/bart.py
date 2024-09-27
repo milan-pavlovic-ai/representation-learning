@@ -205,8 +205,8 @@ if __name__ == "__main__":
         'bart__fine_tuning': lambda: np.random.choice([True, False]),               # Fine tune pretrained models or not
         'bart__pretrained_model': lambda: np.random.choice([
             'facebook/bart-base',
-            'facebook/bart-large',
-            'facebook/bart-large-mnli'
+            # 'facebook/bart-large',
+            # 'facebook/bart-large-mnli'
         ]),                                                                         # Pretrained Models
 
         # Classifier Hyperparameters

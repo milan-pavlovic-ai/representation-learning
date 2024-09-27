@@ -207,7 +207,7 @@ if __name__ == "__main__":
         't5__pretrained_model': lambda: np.random.choice([
             't5-small',
             't5-base',
-            't5-large',
+            # 't5-large',
             'google/t5-v1_1-base'
         ]),                                                                         # Pretrained Models
 
