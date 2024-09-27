@@ -200,7 +200,7 @@ if __name__ == "__main__":
     param_dists = {
         # T5 Representation Parameters
         't5__sequence_len': lambda: np.random.randint(32, 129),                   # Number of tokens in sentence (document)
-        't5__fine_tuning': lambda: np.random.choice([False]),               # Fine tune pretrained models or not
+        't5__fine_tuning': lambda: np.random.choice([False, True]),               # Fine tune pretrained models or not
         't5__pretrained_model': lambda: np.random.choice([
             't5-small',
             't5-base',
@@ -214,7 +214,7 @@ if __name__ == "__main__":
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(2, 3)                       # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
@@ -222,6 +222,6 @@ if __name__ == "__main__":
         model_class=T5Classifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=1
+        n_trials=10
     )
     optimizer.random_search()

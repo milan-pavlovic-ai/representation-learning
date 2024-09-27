@@ -220,7 +220,7 @@ if __name__ == "__main__":
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(2, 3)                       # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
