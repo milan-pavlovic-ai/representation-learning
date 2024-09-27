@@ -37,8 +37,11 @@ class TextRepresentation(nn.Module):
         self.dataset = dataset
         return
 
-    def prepare(self) -> None:
+    def prepare(self, inputs: Any = None) -> Any:
         """Prepare of representation with the vectorizer.
+
+        Args:
+            inputs (Any): Inputs. Defaults to None.
 
         Raises:
             NotImplementedError: This method must be implemented by subclasses of TextRepresentation.
@@ -370,7 +373,7 @@ class ModelManager:
         if not os.path.exists(model_dir):
             os.makedirs(model_dir)
         
-        torch.save(the_model, model_path)
+        torch.save(the_model.state_dict(), model_path)
         logger.info(f'Saved model at: {model_path}')
         return
 

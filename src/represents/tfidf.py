@@ -1,4 +1,9 @@
-"""TF-IDF Method"""
+"""TF-IDF (Term Frequency-Inverse Document Frequency)
+
+    A statistical method that evaluates how relevant a word is to a document within a collection of documents (corpus).
+    It combines term frequency (how often a word appears in a document) with inverse document frequency (how rare the word is across documents).
+    TF-IDF is often used in information retrieval and text mining for weighting words.
+"""
 
 import os
 import sys
@@ -58,9 +63,12 @@ class TfidfRepresentation(TextRepresentation):
         logger.info('Initialized TF-IDF representation')
         return
 
-    def prepare(self) -> None:
+    def prepare(self, inputs: Any = None) -> Any:
         """Fit the TF-IDF vectorizer with hyperparameters passed as keyword arguments.
-        
+
+        Args:
+            inputs (Any): Raw inputs. Defaults to None.
+
         Returns:
             None
         """
@@ -71,7 +79,8 @@ class TfidfRepresentation(TextRepresentation):
         self.model.fit(self.dataset.X_train)
 
         logger.info('TF-IDF Representation has been trained')
-        return
+        
+        return inputs
 
     def forward(self, inputs: Any):
         """Transforms input text using the pre-fitted TF-IDF vectorizer.

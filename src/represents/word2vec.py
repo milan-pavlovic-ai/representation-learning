@@ -1,4 +1,11 @@
-"""Word2Vec Method"""
+"""Word2Vec (Word to Vector)
+
+    A neural network-based model that converts words into continuous vector representations (embeddings).
+    Capturing semantic relationships based on word co-occurrence in large corpora.
+    It comes in two forms:
+        Skip-Gram (predicts context words from a target word) and
+        Continuous Bag of Words (CBOW, predicts a target word from context).
+"""
 
 import os
 import sys
@@ -71,8 +78,11 @@ class Word2VecRepresentation(TextRepresentation):
         logger.info('Initialized Word2Vec representation')
         return
 
-    def prepare(self) -> None:
+    def prepare(self, inputs: Any = None) -> Any:
         """Fit the Word2Vec vectorizer
+
+        Args:
+            inputs (Any): Raw inputs. Defaults to None.
 
         Returns:
             None
@@ -84,7 +94,8 @@ class Word2VecRepresentation(TextRepresentation):
         self.model = Word2Vec(sentences=sentences, **self.word2vec_hparams)
 
         logger.info('Word2Vec Representation has been trained')
-        return
+        
+        return inputs
 
     def forward(self, inputs: Any):
         """Transforms input text using the pre-fitted Word2Vec vectorizer.
