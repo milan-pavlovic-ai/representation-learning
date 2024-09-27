@@ -144,7 +144,7 @@ class BARTClassifier(TextClassifier):
             dataset=dataset
         )
 
-        if self.hparams['bert__fine_tuning']:
+        if self.hparams['bart__fine_tuning']:
             self.device = torch.device('cpu')
 
         self.representation = BARTRepresentation(hparams=self.hparams, dataset=self.dataset)

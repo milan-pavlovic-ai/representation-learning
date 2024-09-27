@@ -145,7 +145,7 @@ class T5Classifier(TextClassifier):
             dataset=dataset
         )
 
-        if self.hparams['bert__fine_tuning']:
+        if self.hparams['t5__fine_tuning']:
             self.device = torch.device('cpu')
 
         self.representation = T5Representation(hparams=self.hparams, dataset=self.dataset)
