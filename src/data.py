@@ -68,11 +68,11 @@ class DataManager:
     class Config:
         """Data configuration"""
         STATE_SEED = 21
-        BATCH_SIZE = 128
+        BATCH_SIZE = 64
 
-        TRAIN_SAMPLES = 20_000
+        TRAIN_SAMPLES = 10_000
         VALID_SAMPLES = 5_000
-        TEST_SAMPLES = 25_000
+        TEST_SAMPLES = 35_000
 
         FEATURE_TEXT = 'review'
         FEATURE_LABEL = 'sentiment'
