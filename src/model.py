@@ -200,11 +200,13 @@ class ModelManager:
 
         for epoch in tqdm(range(num_epochs), desc='\nTraining'):
 
-            # Training            
+            # Training
+            torch.cuda.empty_cache()      
             self.model.train()
+            
+            y_true = []
+            y_pred = []
             epoch_loss = 0.0
-            correct_preds: int = 0
-            total_preds: int = 0
 
             for inputs, labels in tqdm(self.dataset.dataloader_train, desc=f'\nTraining epoch {epoch}/{num_epochs}'):
 
@@ -226,13 +228,15 @@ class ModelManager:
 
                 # Metrics
                 epoch_loss += loss.item()
-                preds = (torch.sigmoid(outputs) > ModelManager.Config.THRESHOLD).float()
-                correct_preds += (preds == labels).sum().item()
-                total_preds += labels.size(0)
+                predictions = (outputs > ModelManager.Config.THRESHOLD)
+                
+                y_true.extend(labels.cpu().numpy().astype(int))
+                y_pred.extend(predictions.cpu().numpy().astype(int))
 
+            accuracy = accuracy_score(y_true, y_pred) * 100
+            f1_result = f1_score(y_true, y_pred, average='binary')
             avg_loss = epoch_loss / len(self.dataset.dataloader_train)
-            accuracy = correct_preds / total_preds * 100
-            logger.info(f'Epoch [{epoch+1}/{num_epochs}], Avg Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%')
+            logger.info(f'Epoch [{epoch+1}/{num_epochs}], Avg Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%, F1 Score: {f1_result:.4f}')
 
             # Validation
             f1_score_val = self.validate()
@@ -251,6 +255,8 @@ class ModelManager:
                 logger.info('Early stopping triggered.')
                 break
 
+            torch.cuda.synchronize()
+
         logger.info('\nTraining has been completed')
         return
 
@@ -266,8 +272,6 @@ class ModelManager:
         self.model.eval()
         y_true = []
         y_pred = []
-        correct_preds = 0
-        total_preds = 0
         total_loss = 0.0
 
         with torch.no_grad():
@@ -283,23 +287,20 @@ class ModelManager:
                 
                 # Predictions
                 outputs = self.model(inputs)
-                predicted = (outputs > ModelManager.Config.THRESHOLD).float()
+                predictions = (outputs > ModelManager.Config.THRESHOLD)
                 
                 # Metrics
                 loss = self.criterion(outputs, labels)
                 total_loss += loss.item()
 
-                y_true.extend(labels.cpu().numpy())
-                y_pred.extend(predicted.cpu().numpy())
-
-                correct_preds += (predicted == labels).sum().item()
-                total_preds += labels.size(0)
+                y_true.extend(labels.cpu().numpy().astype(int))
+                y_pred.extend(predictions.cpu().numpy().astype(int))
                 
                 torch.cuda.synchronize()
 
+        accuracy = accuracy_score(y_true, y_pred) * 100
         f1_result = f1_score(y_true, y_pred, average='binary')
-        accuracy = correct_preds / total_preds * 100 if total_preds > 0 else 0.0
-        average_loss = total_loss / len(self.dataset.dataloader_valid) if total_preds > 0 else float('inf')
+        average_loss = total_loss / len(self.dataset.dataloader_valid)
 
         logger.info(f'Validation Avg Loss: {average_loss:.4f}, Accuracy: {accuracy:.2f}%, F1 Score: {f1_result:.4f}')
         logger.info('Validation has been completed.')
@@ -332,11 +333,11 @@ class ModelManager:
                 
                 # Predictions
                 outputs = the_model(inputs)
-                predictions = (outputs > ModelManager.Config.THRESHOLD).float()
+                predictions = (outputs > ModelManager.Config.THRESHOLD)
                 
                 # Metrics
-                all_preds.extend(predictions.cpu().numpy())
-                all_labels.extend(labels.cpu().numpy())
+                all_preds.extend(predictions.cpu().numpy().astype(int))
+                all_labels.extend(labels.cpu().numpy().astype(int))
 
         # Calculate metrics
         f1_result = round(f1_score(all_labels, all_preds), decimals)
@@ -425,7 +426,7 @@ class ModelOptimizer:
         best_model = None
         
         for trial_id in range(self.n_trials):
-            logger.warning(f'\nExecuting trial {trial_id}')
+            logger.warning(f'Executing trial {trial_id}')
 
             # Clean cache
             torch.cuda.empty_cache()
