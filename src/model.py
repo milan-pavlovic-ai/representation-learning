@@ -318,44 +318,56 @@ class ModelManager:
             None
         """
         logger.info('\nTesting model ...')
-        all_preds = []
-        all_labels = []
 
-        # Calculate predictions
-        with torch.no_grad():
-            for inputs, labels in tqdm(self.dataset.dataloader_test, desc='Testing model'):
-                # Encoder
-                inputs = the_model.encode(inputs)
+        all_dataloaders = [
+            ('Training set', self.dataset.dataloader_train),
+            ('Validation set', self.dataset.dataloader_valid),
+            ('Testing set', self.dataset.dataloader_test)
+        ]
 
-                # Move to GPU
-                inputs = inputs.to(self.model.device)
-                labels = labels.float().view(-1, 1) 
-                
-                # Predictions
-                outputs = the_model(inputs)
-                predictions = (outputs > ModelManager.Config.THRESHOLD)
-                
-                # Metrics
-                all_preds.extend(predictions.cpu().numpy().astype(int))
-                all_labels.extend(labels.cpu().numpy().astype(int))
+        for dataset_name, dataloader in all_dataloaders:
+            all_preds = []
+            all_labels = []
 
-        # Calculate metrics
-        f1_result = round(f1_score(all_labels, all_preds), decimals)
-        accuracy = round(accuracy_score(all_labels, all_preds), decimals)
-        precision = round(precision_score(all_labels, all_preds), decimals)
-        recall = round(recall_score(all_labels, all_preds), decimals)
-        auc_score = round(roc_auc_score(all_labels, all_preds), decimals)
+            # Calculate predictions
+            with torch.no_grad():
+                for inputs, labels in tqdm(dataloader, desc=f'Evaluation on {dataset_name}'):
+                    # Encoder
+                    inputs = the_model.encode(inputs)
 
-        results = {
-            'F1 Score': f1_result,
-            'Accuracy': accuracy,
-            'Precision': precision,
-            'Recall': recall,
-            'AUC Score': auc_score
-        }
-        
-        logger.info(results)
-        logger.info('Model has been tested')
+                    # Move to GPU
+                    inputs = inputs.to(self.model.device)
+                    labels = labels.float().view(-1, 1) 
+                    
+                    # Predictions
+                    outputs = the_model(inputs)
+                    predictions = (outputs > ModelManager.Config.THRESHOLD)
+                    
+                    # Metrics
+                    all_preds.extend(predictions.cpu().numpy().astype(int))
+                    all_labels.extend(labels.cpu().numpy().astype(int))
+
+            # Calculate metrics
+            f1_result = round(f1_score(all_labels, all_preds), decimals)
+            accuracy = round(accuracy_score(all_labels, all_preds), decimals)
+            precision = round(precision_score(all_labels, all_preds), decimals)
+            recall = round(recall_score(all_labels, all_preds), decimals)
+            auc_score = round(roc_auc_score(all_labels, all_preds), decimals)
+
+            results = {
+                'Data Type': dataset_name,
+                'Data Size': len(dataloader.dataset),
+                'F1 Score': f1_result,
+                'Accuracy': accuracy,
+                'Precision': precision,
+                'Recall': recall,
+                'AUC Score': auc_score
+            }
+
+            for metric, value in results.items():
+                logger.info(f'{metric}: {value}')
+
+        logger.info('Model has been tested.\n')
         return
 
     @staticmethod
@@ -485,5 +497,9 @@ class ModelOptimizer:
         # Saving
         ModelManager.save(best_model, suffix=f'trial_{best_trial}_best')
 
-        logger.info(f'\nBest F1 Score: {best_f1_score:.4f}\nBest Parameters: {best_params}')
+        # Logging
+        logger.info(f'Best F1 Score: {best_f1_score:.4f}')
+        logger.info('Best Hyper-parameters:')
+        for param_name, param_value in best_params.items():
+            logger.info(f'\t{param_name}: {param_value}')
         return
