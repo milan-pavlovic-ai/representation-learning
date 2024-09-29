@@ -225,22 +225,22 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # Word vectorizer 
-        'vec__sequence_len': lambda: np.random.randint(32, 129),                    # Sequence length during the initial vectorization of words
+        'vec__sequence_len': lambda: np.random.randint(64, 129),                    # Sequence length during the initial vectorization of words
 
         # LSTM Representation Parameters
-        'lstm__embedding_dim': lambda: np.random.randint(128, 2049),                # Dimensionality of the embedding vectors (size of each word vector)
-        'lstm__hidden_dim': lambda: np.random.randint(64, 512),                     # Number of hidden units in each LSTM layer
+        'lstm__embedding_dim': lambda: np.random.randint(256, 1025),                # Dimensionality of the embedding vectors (size of each word vector)
+        'lstm__hidden_dim': lambda: np.random.randint(128, 257),                    # Number of hidden units in each LSTM layer
         'lstm__bidirectional': lambda: np.random.choice([True, False]),             # Whether to use a bidirectional LSTM
         'lstm__n_layers': lambda: np.random.randint(1, 3),                          # Number of LSTM layers (stacked LSTMs)
-        'lstm__dropout': lambda: np.random.uniform(0.0, 0.5),                       # Dropout probability for regularization (applied between LSTM layers)
+        'lstm__dropout': lambda: np.random.uniform(0.3, 0.6),                       # Dropout probability for regularization (applied between LSTM layers)
 
         # Classifier Hyperparameters
-        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -1),              # Learning rate 
+        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -2),              # Learning rate 
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
-        'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
+        'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -2),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
-        'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
+        'clf__patience': lambda: np.random.randint(5, 15),                          # Early stopping patience
+        'clf__num_epochs': lambda: np.random.randint(30, 50)                        # Number of training epochs
     }
 
     # Run hyperparameter optimization

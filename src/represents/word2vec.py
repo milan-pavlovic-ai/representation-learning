@@ -200,25 +200,25 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # Word2Vec Representation Parameters
-        'w2v__vector_size': lambda: np.random.randint(128, 2049),                # Dimensionality of the word vectors
-        'w2v__window': lambda: np.random.randint(1, 11),                         # Maximum distance between the current and predicted word
-        'w2v__min_count': lambda: np.random.randint(1, 10),                      # Minimum frequency count of words to be considered for training
+        'w2v__vector_size': lambda: np.random.randint(256, 1025),                # Dimensionality of the word vectors
+        'w2v__window': lambda: np.random.randint(2, 11),                         # Maximum distance between the current and predicted word
+        'w2v__min_count': lambda: np.random.randint(5, 20),                      # Minimum frequency count of words to be considered for training
         'w2v__sg': lambda: np.random.randint(0, 2),                              # 0 uses the CBOW approach, 1 uses the Skip-gram approach
-        'w2v__alpha': lambda: 10 ** np.random.uniform(-5, -1),                   # The initial learning rate.
+        'w2v__alpha': lambda: 10 ** np.random.uniform(-5, -2),                   # The initial learning rate.
         'w2v__negative': lambda: np.random.randint(5, 20),                       # The number of negative samples to use 
-        'w2v__epochs': lambda: np.random.randint(5, 20),                         # The number of iterations over the corpus during training
+        'w2v__epochs': lambda: np.random.randint(30, 40),                         # The number of iterations over the corpus during training
         'w2v__workers': lambda: np.random.randint(10, 12),                       # The number of worker threads to train the model
 
         # Encoder
-        'enc__use_attention': lambda: np.random.choice([False, True]),           # Use attention pooling for document embeddings, otherwise use average
+        'enc__use_attention': lambda: np.random.choice([True]),                  # Use attention pooling for document embeddings, otherwise use average
 
         # Classifier Hyperparameters
-        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -1),              # Learning rate 
+        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -2),              # Learning rate 
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
-        'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
+        'clf__patience': lambda: np.random.randint(10, 15),                         # Early stopping patience
+        'clf__num_epochs': lambda: np.random.randint(30, 50)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
@@ -226,6 +226,6 @@ if __name__ == "__main__":
         model_class=Word2VecClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=10
+        n_trials=5
     )
     optimizer.random_search()

@@ -169,7 +169,7 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # TF-IDF Representation Parameters
-        'tfidf__max_features': lambda: np.random.randint(128, 2049),                 # Number of max features
+        'tfidf__max_features': lambda: np.random.randint(256, 1025),                 # Number of max features
         'tfidf__min_df': lambda: np.random.randint(1, 10),                           # Minimum document frequency
         'tfidf__max_df': lambda: np.random.uniform(0.5, 1),                          # Maximum document frequency 
         'tfidf__ngram_range': lambda: [(1, 1), (1, 2), (1, 3)][np.random.choice(3)], # n-gram for tf-idf representation 
@@ -177,12 +177,12 @@ if __name__ == "__main__":
         'tfidf__smooth_idf': lambda: np.random.choice([True]),                       # Smooth inverse document frequency 
 
         # Classifier Hyperparameters
-        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -1),              # Learning rate 
+        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -2),              # Learning rate 
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
-        'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
+        'clf__patience': lambda: np.random.randint(5, 15),                         # Early stopping patience
+        'clf__num_epochs': lambda: np.random.randint(30, 50)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
