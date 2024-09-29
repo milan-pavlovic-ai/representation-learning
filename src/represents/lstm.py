@@ -24,16 +24,18 @@ from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, Text
 class LSTMDataset(DataManager):
     """LSTM dataset manager"""
 
-    def __init__(self, sample_size: float = None) -> None:
+    def __init__(self, sample_size: float = None, preprocess: bool = True) -> None:
         """Initializes dataset with texts and labels.
 
         Args:
-            sample_size (float): Take sample from the data. Defaults takes all data.
+            sample_size (float): Take sample from the data. Defaults takes all data. Defaults to None.
+            preprocess (bool): Whether to use preprocesed dataset or not. Defaults to True.
 
         Returns:
             None
         """
-        super(LSTMDataset, self).__init__(sample_size=sample_size, processor=TextPreprocessor())
+        processor = TextPreprocessor() if preprocess else None
+        super(LSTMDataset, self).__init__(sample_size=sample_size, processor=processor)
         return
 
     def prepare(self) -> None:
@@ -219,7 +221,10 @@ class LSTMClassifier(TextClassifier):
 if __name__ == "__main__":
    
     # Prepare dataset
-    dataset = LSTMDataset(sample_size=None)
+    dataset = LSTMDataset(
+        sample_size=None,
+        preprocess=True
+    )
     dataset.prepare()
     
     # Define hyperparameter space

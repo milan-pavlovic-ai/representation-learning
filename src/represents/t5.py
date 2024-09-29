@@ -23,16 +23,18 @@ from src.model import ModelOptimizer, LinearClassifier, TextRepresentation, Text
 class T5Dataset(DataManager):
     """T5 dataset manager"""
 
-    def __init__(self, sample_size: float = None) -> None:
+    def __init__(self, sample_size: float = None, preprocess: bool = True) -> None:
         """Initializes dataset with texts and labels.
 
         Args:
-            sample_size (float): Take sample from the data. Defaults takes all data.
+            sample_size (float): Take sample from the data. Defaults takes all data. Defaults to None.
+            preprocess (bool): Whether to use preprocesed dataset or not. Defaults to True.
 
         Returns:
             None
         """
-        super(T5Dataset, self).__init__(sample_size=sample_size, processor=None)
+        processor = TextPreprocessor() if preprocess else None
+        super(T5Dataset, self).__init__(sample_size=sample_size, processor=processor)
         return
 
     def prepare(self) -> None:
@@ -193,7 +195,10 @@ class T5Classifier(TextClassifier):
 if __name__ == "__main__":
    
     # Prepare dataset
-    dataset = T5Dataset(sample_size=None)
+    dataset = T5Dataset(
+        sample_size=None,
+        preprocess=False
+    )
     dataset.prepare()
     
     # Define hyperparameter space
