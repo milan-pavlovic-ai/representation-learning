@@ -235,17 +235,17 @@ if __name__ == "__main__":
         # LSTM Representation Parameters
         'lstm__embedding_dim': lambda: np.random.randint(256, 1025),                # Dimensionality of the embedding vectors (size of each word vector)
         'lstm__hidden_dim': lambda: np.random.randint(128, 257),                    # Number of hidden units in each LSTM layer
-        'lstm__bidirectional': lambda: np.random.choice([True, False]),             # Whether to use a bidirectional LSTM
+        'lstm__bidirectional': lambda: np.random.choice([True]),                    # Whether to use a bidirectional LSTM
         'lstm__n_layers': lambda: np.random.randint(1, 3),                          # Number of LSTM layers (stacked LSTMs)
-        'lstm__dropout': lambda: np.random.uniform(0.3, 0.6),                       # Dropout probability for regularization (applied between LSTM layers)
+        'lstm__dropout': lambda: np.random.uniform(0.5, 0.8),                       # Dropout probability for regularization (applied between LSTM layers)
 
         # Classifier Hyperparameters
-        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -2),              # Learning rate 
+        'clf__learning_rate': lambda: 10 ** np.random.uniform(-5, -3),              # Learning rate 
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -2),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
         'clf__patience': lambda: np.random.randint(5, 15),                          # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(30, 50)                        # Number of training epochs
+        'clf__num_epochs': lambda: np.random.randint(40, 50)                        # Number of training epochs
     }
 
     # Run hyperparameter optimization
@@ -253,6 +253,6 @@ if __name__ == "__main__":
         model_class=LSTMClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=10
+        n_trials=5
     )
     optimizer.random_search()

@@ -445,9 +445,9 @@ class ModelOptimizer:
 
             # Sample hyperparameters
             hparams = {key: distribution() for key, distribution in self.param_dists.items()}
-            logger.info("Sampled Hyperparameters:")
+            logger.info("Sampled Hyper-parameters:")
             for key, value in hparams.items():
-                logger.info(f"{key}: {value}")
+                logger.info(f"\t{key}: {value}")
 
             # Create model
             model = self.model_class(hparams, self.dataset)

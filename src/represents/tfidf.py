@@ -195,6 +195,6 @@ if __name__ == "__main__":
         model_class=TfidfClassifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=10
+        n_trials=5
     )
     optimizer.random_search()

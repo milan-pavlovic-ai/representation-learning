@@ -76,11 +76,11 @@ class T5Representation(TextRepresentation):
         self.output_dim = self.model.config.d_model
 
         # Freeze weights if only use pretrained model
-        if not self.use_fine_tuning:
+        if self.use_fine_tuning:
+            self.device = torch.device('cpu')
+        else:
             for param in self.model.parameters():
                 param.requires_grad = False
-        else:
-            self.device = torch.device('cpu')
 
         logger.info('Initialized T5 representation')
         return
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     # Define hyperparameter space
     param_dists = {
         # T5 Representation Parameters
-        't5__sequence_len': lambda: np.random.randint(32, 129),                   # Number of tokens in sentence (document)
+        't5__sequence_len': lambda: np.random.randint(128, 512),                   # Number of tokens in sentence (document)
         't5__fine_tuning': lambda: np.random.choice([False, True]),               # Fine tune pretrained models or not
         't5__pretrained_model': lambda: np.random.choice([
             't5-small',
@@ -218,8 +218,8 @@ if __name__ == "__main__":
         'clf__betas': lambda: [(0.9, 0.999), (0.95, 0.999)][np.random.choice(2)],   # Betas for Adam optimizer
         'clf__weight_decay': lambda: 10 ** np.random.uniform(-5, -1),               # Weight decay for regularization
         'clf__amsgrad': lambda: np.random.choice([True, False]),                    # Use AMSGrad variant of Adam optimizer
-        'clf__patience': lambda: np.random.randint(10, 30),                         # Early stopping patience
-        'clf__num_epochs': lambda: np.random.randint(30, 100)                       # Number of training epochs
+        'clf__patience': lambda: np.random.randint(5, 15),                         # Early stopping patience
+        'clf__num_epochs': lambda: np.random.randint(30, 50)                       # Number of training epochs
     }
 
     # Run hyperparameter optimization
@@ -227,6 +227,6 @@ if __name__ == "__main__":
         model_class=T5Classifier,
         dataset=dataset,
         param_dists=param_dists,
-        n_trials=10
+        n_trials=1
     )
     optimizer.random_search()
